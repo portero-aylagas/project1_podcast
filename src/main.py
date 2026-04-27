@@ -1,5 +1,7 @@
+import re
 import shutil
 from pathlib import Path
+
 import gradio as gr
 
 import src.data_processor as dp
@@ -14,6 +16,16 @@ URL_DIR = DATA_DIR / "url"
 
 OUTPUT_DIR = Path("outputs")
 TRANSCRIPT_PATH = OUTPUT_DIR / "transcript.txt"
+
+URL_REGEX = re.compile(
+    r"^(https?:\/\/)"
+    r"(([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})"
+    r"(\/[^\s]*)?$"
+)
+
+
+def is_valid_url(url: str) -> bool:
+    return bool(URL_REGEX.match(url.strip()))
 
 
 def log_section(title):
@@ -72,11 +84,16 @@ def pipeline(pdf_file, url_input, text_input, target_audience, style):
         text_destination = TEXT_DIR / "input.txt"
         with open(text_destination, "w", encoding="utf-8") as f:
             f.write(text_input.strip())
+
         sources["text_path"] = str(text_destination)
         print(f"Text saved → {text_destination}")
 
     if url_input and url_input.strip():
         clean_url = url_input.strip()
+
+        if not is_valid_url(clean_url):
+            raise gr.Error("Invalid URL format. Use a URL starting with http:// or https://")
+
         url_destination = URL_DIR / "url.txt"
 
         with open(url_destination, "w", encoding="utf-8") as f:
@@ -84,6 +101,7 @@ def pipeline(pdf_file, url_input, text_input, target_audience, style):
 
         sources["url_path"] = str(url_destination)
         sources["url"] = clean_url
+
         print(f"URL saved → {url_destination}")
         print(f"URL value → {clean_url}")
 
@@ -94,6 +112,7 @@ def pipeline(pdf_file, url_input, text_input, target_audience, style):
 
     log_section("🔍 STEP 3 — PROCESS SOURCES")
     summary = dp.process_sources(sources)
+
     print(f"Summary generated ({len(summary)} characters).")
     print("\nSummary preview:")
     print(summary[:800])
@@ -163,7 +182,7 @@ Turn your content into a podcast.
             with gr.Group():
                 url_input = gr.Textbox(
                     label="URL",
-                    placeholder="https://...",
+                    placeholder="https://example.com/article",
                 )
 
             with gr.Group():
