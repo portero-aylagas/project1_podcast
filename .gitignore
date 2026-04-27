@@ -75,4 +75,5 @@ htmlcov/
 # =========================
 # Podcast files
 # =========================
-source/
+outputs/
+data/
