@@ -26,7 +26,6 @@ def reset_data():
     log_section("🧹 STEP 1 — RESET ENVIRONMENT")
 
     if DATA_DIR.exists():
-        print(f"Deleting old data folder: {DATA_DIR}")
         shutil.rmtree(DATA_DIR)
 
     PDF_DIR.mkdir(parents=True, exist_ok=True)
@@ -34,17 +33,21 @@ def reset_data():
     URL_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("Data folders recreated.")
+
+def has_source_data(pdf_file, url_input, text_input):
+    return bool(
+        pdf_file is not None
+        or (url_input and url_input.strip())
+        or (text_input and text_input.strip())
+    )
+
+
+def update_generate_button(pdf_file, url_input, text_input):
+    return gr.update(interactive=has_source_data(pdf_file, url_input, text_input))
 
 
 def pipeline(pdf_file, url_input, text_input, target_audience, style):
     log_section("📥 INPUT RECEIVED")
-
-    print(f"PDF provided: {pdf_file is not None}")
-    print(f"URL provided: {bool(url_input and url_input.strip())}")
-    print(f"Text provided: {bool(text_input and text_input.strip())}")
-    print(f"Target audience: {target_audience}")
-    print(f"Style: {style}")
 
     reset_data()
 
@@ -118,50 +121,58 @@ def pipeline(pdf_file, url_input, text_input, target_audience, style):
     print(f"Audio generated → {audio_path}")
 
     log_section("📦 DONE")
-    print(f"Audio file: {audio_path}")
-    print(f"Transcript file: {TRANSCRIPT_PATH}")
+    print(f"Audio: {audio_path}")
+    print(f"Transcript: {TRANSCRIPT_PATH}")
 
     return audio_path, script, str(TRANSCRIPT_PATH)
 
 
 def start_processing():
-    return (
-        "⏳ Generating podcast...",
-        gr.update(visible=False),
-    )
+    return "⏳ Generating podcast...", gr.update(visible=False)
 
 
 def finish_processing(audio, transcript, transcript_file):
-    return (
-        "",
-        gr.update(visible=True),
-        audio,
-        transcript,
-        transcript_file,
-    )
+    return "", gr.update(visible=True), audio, transcript, transcript_file
 
 
 with gr.Blocks(title="AI Podcast Studio") as demo:
-    gr.Markdown("# AI Podcast Studio")
+    gr.Markdown("""
+# 🎙️ AI Podcast Studio
+
+Turn your content into a podcast.
+
+**Steps**
+1. Provide at least one source (PDF, URL, or Text)
+2. Choose audience and style
+3. Click Generate Podcast
+""")
 
     with gr.Row():
         with gr.Column(scale=1):
-            gr.Markdown("## Input")
+            gr.Markdown("## 🧾 Input")
 
-            pdf_file = gr.File(
-                label="Upload PDF",
-                file_types=[".pdf"],
-            )
+            gr.Markdown("### 📚 Sources")
+            gr.Markdown("_Provide at least one source. All sources are treated equally._")
 
-            url_input = gr.Textbox(
-                label="Paste URL",
-                placeholder="https://...",
-            )
+            with gr.Group():
+                pdf_file = gr.File(
+                    label="PDF",
+                    file_types=[".pdf"],
+                )
 
-            text_input = gr.Textbox(
-                label="Paste text",
-                lines=8,
-            )
+            with gr.Group():
+                url_input = gr.Textbox(
+                    label="URL",
+                    placeholder="https://...",
+                )
+
+            with gr.Group():
+                text_input = gr.Textbox(
+                    label="Text",
+                    lines=8,
+                )
+
+            gr.Markdown("### ⚙️ Configuration")
 
             target_audience = gr.Dropdown(
                 choices=["Kids", "General Public", "Professionals", "Experts"],
@@ -179,12 +190,13 @@ with gr.Blocks(title="AI Podcast Studio") as demo:
                 "🎙️ Generate Podcast",
                 size="lg",
                 variant="primary",
+                interactive=False,
             )
 
             status = gr.Markdown("")
 
         with gr.Column(scale=1):
-            gr.Markdown("## Output")
+            gr.Markdown("## 🎧 Output")
 
             audio_output = gr.Audio(
                 type="filepath",
@@ -194,7 +206,7 @@ with gr.Blocks(title="AI Podcast Studio") as demo:
 
             transcript_output = gr.Textbox(
                 label="Transcript",
-                lines=18,
+                lines=20,
                 interactive=False,
             )
 
@@ -202,6 +214,24 @@ with gr.Blocks(title="AI Podcast Studio") as demo:
                 label="Download Transcript",
                 interactive=False,
             )
+
+    pdf_file.change(
+        fn=update_generate_button,
+        inputs=[pdf_file, url_input, text_input],
+        outputs=submit_button,
+    )
+
+    url_input.change(
+        fn=update_generate_button,
+        inputs=[pdf_file, url_input, text_input],
+        outputs=submit_button,
+    )
+
+    text_input.change(
+        fn=update_generate_button,
+        inputs=[pdf_file, url_input, text_input],
+        outputs=submit_button,
+    )
 
     submit_button.click(
         fn=start_processing,
@@ -229,4 +259,4 @@ demo.queue()
 
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(theme=gr.themes.Default(spacing_size="sm"))
