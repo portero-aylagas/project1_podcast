@@ -1,43 +1,131 @@
-from src.config import client
+"""
+Converts a podcast script string into an audio file.
+
+Input:
+- podcast script string in this format:
+  [Speaker1]: ...
+  [Speaker2]: ...
+
+Output:
+- path to the final generated podcast audio file
+"""
+
+import re
+import shutil
+from pathlib import Path
+
+from dotenv import load_dotenv
+from openai import OpenAI
 from pydub import AudioSegment
-from pydub.playback import play
-import io
+import os
 
 
-def generate_audio(text: str, voice: str = "nova", model: str = "tts-1-hd") -> AudioSegment:
-    """
-    Generates audio from text using OpenAI TTS and returns it as an AudioSegment.
-    """
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+OUTPUT_DIR = Path("outputs")
+PARTS_DIR = OUTPUT_DIR / "audio_parts"
+
+VOICE_MAP = {
+    "Speaker1": "alloy",
+    "Speaker2": "nova",
+}
+
+
+def reset_audio_outputs():
+    if PARTS_DIR.exists():
+        shutil.rmtree(PARTS_DIR)
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    PARTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def parse_script(script: str) -> list[tuple[str, str]]:
+    segments = []
+
+    for line in script.splitlines():
+        match = re.match(r"\[(.*?)\]:\s*(.*)", line.strip())
+
+        if match:
+            speaker = match.group(1)
+            text = match.group(2)
+
+            if text:
+                segments.append((speaker, text))
+
+    return segments
+
+
+def generate_tts(text: str, voice: str, output_path: Path) -> None:
     response = client.audio.speech.create(
-        model=model,
+        model="tts-1",
         voice=voice,
-        input=text
+        input=text,
     )
 
-    audio = AudioSegment.from_mp3(io.BytesIO(response.content))
-    return audio
+    with open(output_path, "wb") as f:
+        f.write(response.content)
 
 
-def play_audio(audio: AudioSegment) -> None:
+def build_audio_segments(segments: list[tuple[str, str]]) -> list[Path]:
+    files = []
+
+    for i, (speaker, text) in enumerate(segments):
+        voice = VOICE_MAP.get(speaker, "alloy")
+        filename = PARTS_DIR / f"{i:03d}_{speaker}.mp3"
+
+        print(f"[{i + 1}/{len(segments)}] {speaker}: {text[:60]}...")
+
+        generate_tts(
+            text=text,
+            voice=voice,
+            output_path=filename,
+        )
+
+        files.append(filename)
+
+    return files
+
+
+def combine_audio(files: list[Path]) -> Path:
+    output_file = OUTPUT_DIR / "final_podcast.mp3"
+
+    pause = AudioSegment.silent(duration=500)
+    combined = AudioSegment.empty()
+
+    for i, file in enumerate(files):
+        combined += AudioSegment.from_file(file)
+
+        if i < len(files) - 1:
+            combined += pause
+
+    combined.export(output_file, format="mp3")
+
+    return output_file
+
+
+def generate_podcast_audio(script: str) -> str:
     """
-    Plays an AudioSegment locally.
+    Main function called from main.py.
+
+    Takes podcast script text and returns final audio file path.
     """
-    play(audio)
+    if not script or not script.strip():
+        raise ValueError("Podcast script is empty.")
 
+    reset_audio_outputs()
 
-def test_voices(text: str) -> None:
-    """
-    Tests all available voices using the same input text.
-    """
-    voices = ["alloy", "echo", "fable", "nova", "onyx", "shimmer"]
+    segments = parse_script(script)
 
-    for voice in voices:
-        print(f"Playing: {voice}")
-        audio = generate_audio(text=text, voice=voice)
-        play_audio(audio)
-        print(f"Finished: {voice}")
+    if not segments:
+        raise ValueError(
+            "Script format invalid. Expected:\n"
+            "[Speaker1]: Hello\n"
+            "[Speaker2]: Hi"
+        )
 
+    files = build_audio_segments(segments)
+    final = combine_audio(files)
 
-if __name__ == "__main__":
-    sample_text = "The quick brown fox jumps over the lazy dog. How does my voice sound?"
-    test_voices(sample_text)
+    return str(final)
