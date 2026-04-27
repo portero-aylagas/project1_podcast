@@ -13,53 +13,89 @@ PDF_DIR = SOURCE_DIR / "pdf"
 TEXT_DIR = SOURCE_DIR / "text"
 URL_DIR = SOURCE_DIR / "url"
 
-PDF_DIR.mkdir(parents=True, exist_ok=True)
-TEXT_DIR.mkdir(parents=True, exist_ok=True)
-URL_DIR.mkdir(parents=True, exist_ok=True)
+
+def reset_sources():
+    if SOURCE_DIR.exists():
+        shutil.rmtree(SOURCE_DIR)
+
+    PDF_DIR.mkdir(parents=True, exist_ok=True)
+    TEXT_DIR.mkdir(parents=True, exist_ok=True)
+    URL_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def save_sources(pdf_file, url_input, text_input):
-    locations = {}
+latest_sources = {
+    "pdf_path": None,
+    "text_path": None,
+    "url_path": None,
+    "target_audience": None,
+    "style": None,
+}
+
+
+def save_sources(pdf_file, url_input, text_input, target_audience, style):
+    # clean previous run
+    reset_sources()
+
+    # reset tracking
+    latest_sources["pdf_path"] = None
+    latest_sources["text_path"] = None
+    latest_sources["url_path"] = None
+    latest_sources["target_audience"] = target_audience
+    latest_sources["style"] = style
 
     if pdf_file is not None:
         pdf_destination = PDF_DIR / Path(pdf_file.name).name
         shutil.copy(pdf_file.name, pdf_destination)
-        locations["pdf_path"] = str(pdf_destination)
-
-    if url_input and url_input.strip():
-        url_destination = URL_DIR / "url.txt"
-        with open(url_destination, "w", encoding="utf-8") as f:
-            f.write(url_input.strip())
-        locations["url_path"] = str(url_destination)
-        locations["url"] = url_input.strip()
+        latest_sources["pdf_path"] = str(pdf_destination)
 
     if text_input and text_input.strip():
         text_destination = TEXT_DIR / "input.txt"
         with open(text_destination, "w", encoding="utf-8") as f:
             f.write(text_input.strip())
-        locations["text_path"] = str(text_destination)
+        latest_sources["text_path"] = str(text_destination)
 
-    if not locations:
-        raise gr.Error("Provide at least one source: PDF, URL, or text.")
+    if url_input and url_input.strip():
+        url_destination = URL_DIR / "url.txt"
+        with open(url_destination, "w", encoding="utf-8") as f:
+            f.write(url_input.strip())
+        latest_sources["url_path"] = str(url_destination)
 
-    return locations
+    if not any([
+        latest_sources["pdf_path"],
+        latest_sources["text_path"],
+        latest_sources["url_path"]
+    ]):
+        raise gr.Error("Provide at least one source.")
+
+    print("Saved sources:", latest_sources)
+
+    return "Sources saved."
 
 
 with gr.Blocks(title="Source Loader") as demo:
-    gr.Markdown("# Source Loader")
-
     pdf_file = gr.File(label="Upload PDF", file_types=[".pdf"])
-    url_input = gr.Textbox(label="Paste URL", placeholder="https://...")
+    url_input = gr.Textbox(label="Paste URL")
     text_input = gr.Textbox(label="Paste text", lines=8)
 
-    submit_button = gr.Button("Submit sources")
+    target_audience = gr.Dropdown(
+        choices=["Kids", "General Public", "Professionals", "Experts"],
+        value="General Public",
+        label="Target Audience",
+    )
 
-    output = gr.JSON(label="Saved source locations")
+    style = gr.Dropdown(
+        choices=["Two person conversation"],
+        value="Two person conversation",
+        label="Style",
+    )
+
+    submit_button = gr.Button("Submit sources")
+    hidden_status = gr.Textbox(visible=False)
 
     submit_button.click(
         fn=save_sources,
-        inputs=[pdf_file, url_input, text_input],
-        outputs=output,
+        inputs=[pdf_file, url_input, text_input, target_audience, style],
+        outputs=hidden_status,
     )
 
 
