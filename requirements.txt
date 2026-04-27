@@ -2,3 +2,7 @@ python-dotenv
 openai
 pylance
 gradio
+pypdf
+requests
+beautifulsoup4
+
