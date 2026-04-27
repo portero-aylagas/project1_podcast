@@ -11,7 +11,6 @@ from src.config import client
 def generate_podcast_script(
     summary_text: str,
     target_audience: str = "General Public",
-    style: str = "Two person conversation",
 ) -> str:
     """Generate a podcast dialogue from summarized source material."""
     if not summary_text or not summary_text.strip():
@@ -23,7 +22,7 @@ You are a podcast script writer.
 Convert the following text into a podcast conversation.
 
 Target audience: {target_audience}
-Style: {style}
+Format: two-person conversation between Speaker1 and Speaker2
 
 Rules:
 - Use exactly this format:

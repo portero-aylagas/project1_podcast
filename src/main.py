@@ -58,7 +58,7 @@ def update_generate_button(pdf_file, url_input, text_input):
     return gr.update(interactive=has_source_data(pdf_file, url_input, text_input))
 
 
-def pipeline(pdf_file, url_input, text_input, target_audience, style):
+def pipeline(pdf_file, url_input, text_input, target_audience):
     log_section("📥 INPUT RECEIVED")
 
     reset_data()
@@ -69,7 +69,6 @@ def pipeline(pdf_file, url_input, text_input, target_audience, style):
         "url_path": None,
         "url": None,
         "target_audience": target_audience,
-        "style": style,
     }
 
     log_section("💾 STEP 2 — SAVE SOURCES")
@@ -121,7 +120,6 @@ def pipeline(pdf_file, url_input, text_input, target_audience, style):
     script = llm.generate_podcast_script(
         summary_text=summary,
         target_audience=target_audience,
-        style=style,
     )
 
     segment_count = script.count("[Speaker1]:") + script.count("[Speaker2]:")
@@ -162,7 +160,7 @@ Turn your content into a podcast.
 
 **Steps**
 1. Provide at least one source (PDF, URL, or Text)
-2. Choose audience and style
+2. Choose the target audience
 3. Click Generate Podcast
 """)
 
@@ -197,12 +195,6 @@ Turn your content into a podcast.
                 choices=["Kids", "General Public", "Professionals", "Experts"],
                 value="General Public",
                 label="Target Audience",
-            )
-
-            style = gr.Dropdown(
-                choices=["Two person conversation"],
-                value="Two person conversation",
-                label="Style",
             )
 
             submit_button = gr.Button(
@@ -258,7 +250,7 @@ Turn your content into a podcast.
         outputs=[status, submit_button],
     ).then(
         fn=pipeline,
-        inputs=[pdf_file, url_input, text_input, target_audience, style],
+        inputs=[pdf_file, url_input, text_input, target_audience],
         outputs=[audio_output, transcript_output, transcript_download],
         show_progress=True,
     ).then(

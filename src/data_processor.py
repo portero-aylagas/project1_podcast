@@ -62,12 +62,12 @@ def combine_sources(source_info: dict) -> str:
     return combined_text.strip()
 
 
-def summarize_text(text: str, target_audience: str, style: str) -> str:
+def summarize_text(text: str, target_audience: str) -> str:
     """Summarize the combined source material with the OpenAI Responses API."""
     prompt = f"""
 Summarize the following source material clearly by combining all the provided content.
 The summary should be concise, engaging, and tailored to the specified target audience.
-The output will later be turned into a {style}.
+The output will later be turned into a two-person podcast conversation.
 
 Target audience: {target_audience}
 
@@ -93,7 +93,6 @@ def process_sources(source_info: dict) -> str:
     summary = summarize_text(
         text=combined_text,
         target_audience=source_info.get("target_audience", "General Public"),
-        style=source_info.get("style", "Two person conversation"),
     )
 
     return summary
