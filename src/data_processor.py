@@ -1,28 +1,26 @@
 """
-Loads user-provided sources and converts them into text.
+Load source material and summarize it for podcast generation.
 
-Supported sources:
-- Text file
-- PDF file
-- URL
-
-Returns summarized text for main.py.
+This module accepts the sources collected by the Gradio app, extracts text from
+each source type, combines everything into a single promptable document, and
+returns a summary that can be converted into a podcast script.
 """
 
 import requests
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
-from dotenv import load_dotenv
-from openai import OpenAI
+
 from src.config import client
 
 
 def load_txt(file_path: str) -> str:
+    """Read a UTF-8 text file from disk and return its contents."""
     with open(file_path, "r", encoding="utf-8") as f:
         return f.read()
 
 
 def load_url(url: str) -> str:
+    """Fetch a web page and return visible text content only."""
     response = requests.get(url, timeout=20)
     response.raise_for_status()
 
@@ -35,6 +33,7 @@ def load_url(url: str) -> str:
 
 
 def load_pdf(file_path: str) -> str:
+    """Extract text from every page of a PDF file."""
     reader = PdfReader(file_path)
     text_parts = []
 
@@ -45,6 +44,7 @@ def load_pdf(file_path: str) -> str:
 
 
 def combine_sources(source_info: dict) -> str:
+    """Merge all provided source types into a single text block."""
     combined_text = ""
 
     if source_info.get("text_path"):
@@ -63,9 +63,11 @@ def combine_sources(source_info: dict) -> str:
 
 
 def summarize_text(text: str, target_audience: str, style: str) -> str:
+    """Summarize the combined source material with the OpenAI Responses API."""
     prompt = f"""
 Summarize the following source material clearly by combining all the provided content.
 The summary should be concise, engaging, and tailored to the specified target audience.
+The output will later be turned into a {style}.
 
 Target audience: {target_audience}
 
@@ -82,6 +84,7 @@ Source material:
 
 
 def process_sources(source_info: dict) -> str:
+    """End-to-end source loading and summarization entry point for the app."""
     combined_text = combine_sources(source_info)
 
     if not combined_text:

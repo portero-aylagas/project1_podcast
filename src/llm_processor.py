@@ -1,24 +1,19 @@
 """
-Converts summarized source content into a podcast dialogue script.
+Convert summary text into a structured two-speaker podcast script.
 
-Input:
-- summary text from data_processor.py
-- target audience
-- style
-
-Output:
-- podcast script as a single Python string
+The output format is intentionally strict so the downstream TTS module can parse
+each line and assign a voice to each speaker.
 """
 
-from dotenv import load_dotenv
-from openai import OpenAI
 from src.config import client
+
 
 def generate_podcast_script(
     summary_text: str,
     target_audience: str = "General Public",
     style: str = "Two person conversation",
 ) -> str:
+    """Generate a podcast dialogue from summarized source material."""
     if not summary_text or not summary_text.strip():
         raise ValueError("summary_text is empty.")
 

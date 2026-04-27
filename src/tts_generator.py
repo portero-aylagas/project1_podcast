@@ -1,21 +1,17 @@
 """
-Converts a podcast script string into an audio file.
+Convert a podcast script into audio files and a final merged MP3.
 
-Input:
-- podcast script string in this format:
-  [Speaker1]: ...
-  [Speaker2]: ...
-
-Output:
-- path to the final generated podcast audio file
+The script must contain one speaker turn per line using the format
+`[SpeakerName]: text`. Each line is rendered with OpenAI TTS and then combined
+into a single podcast file with short pauses between turns.
 """
 
 import re
 import shutil
 from pathlib import Path
-from dotenv import load_dotenv
-from openai import OpenAI
+
 from pydub import AudioSegment
+
 from src.config import client
 
 
@@ -29,6 +25,7 @@ VOICE_MAP = {
 
 
 def reset_audio_outputs():
+    """Remove old generated audio and recreate output folders."""
     if PARTS_DIR.exists():
         shutil.rmtree(PARTS_DIR)
 
@@ -37,6 +34,7 @@ def reset_audio_outputs():
 
 
 def parse_script(script: str) -> list[tuple[str, str]]:
+    """Split the generated script into ordered `(speaker, text)` segments."""
     segments = []
 
     for line in script.splitlines():
@@ -53,6 +51,7 @@ def parse_script(script: str) -> list[tuple[str, str]]:
 
 
 def generate_tts(text: str, voice: str, output_path: Path) -> None:
+    """Generate one MP3 clip for a single line of dialogue."""
     response = client.audio.speech.create(
         model="tts-1",
         voice=voice,
@@ -64,6 +63,7 @@ def generate_tts(text: str, voice: str, output_path: Path) -> None:
 
 
 def build_audio_segments(segments: list[tuple[str, str]]) -> list[Path]:
+    """Render all dialogue segments into individual MP3 files."""
     files = []
 
     for i, (speaker, text) in enumerate(segments):
@@ -84,6 +84,7 @@ def build_audio_segments(segments: list[tuple[str, str]]) -> list[Path]:
 
 
 def combine_audio(files: list[Path]) -> Path:
+    """Merge the generated audio files into one final podcast MP3."""
     output_file = OUTPUT_DIR / "final_podcast.mp3"
 
     pause = AudioSegment.silent(duration=500)
@@ -101,11 +102,7 @@ def combine_audio(files: list[Path]) -> Path:
 
 
 def generate_podcast_audio(script: str) -> str:
-    """
-    Main function called from main.py.
-
-    Takes podcast script text and returns final audio file path.
-    """
+    """Generate the final podcast audio file from a validated script."""
     if not script or not script.strip():
         raise ValueError("Podcast script is empty.")
 
