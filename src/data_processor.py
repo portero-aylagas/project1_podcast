@@ -9,19 +9,12 @@ Supported sources:
 Returns summarized text for main.py.
 """
 
-from pathlib import Path
-import os
-
 import requests
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
 from dotenv import load_dotenv
 from openai import OpenAI
-
-
-load_dotenv()
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+from src.config import client
 
 
 def load_txt(file_path: str) -> str:

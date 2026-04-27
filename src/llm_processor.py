@@ -10,16 +10,9 @@ Output:
 - podcast script as a single Python string
 """
 
-import os
-
 from dotenv import load_dotenv
 from openai import OpenAI
-
-
-load_dotenv()
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+from src.config import client
 
 def generate_podcast_script(
     summary_text: str,
