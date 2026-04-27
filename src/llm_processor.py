@@ -1,1 +1,1 @@
-from config import client
+from src.config import client
