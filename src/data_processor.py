@@ -45,29 +45,52 @@ def load_pdf(file_path: str) -> str:
 
 def combine_sources(source_info: dict) -> str:
     """Merge all provided source types into a single text block."""
-    combined_text = ""
+    sections = []
 
     if source_info.get("text_path"):
-        combined_text += load_txt(source_info["text_path"])
-        combined_text += "\n\n---NEW SOURCE: TEXT---\n\n"
+        sections.append(
+            "--- SOURCE: TEXT ---\n"
+            f"{load_txt(source_info['text_path']).strip()}"
+        )
 
     if source_info.get("pdf_path"):
-        combined_text += load_pdf(source_info["pdf_path"])
-        combined_text += "\n\n---NEW SOURCE: PDF---\n\n"
+        sections.append(
+            "--- SOURCE: PDF ---\n"
+            f"{load_pdf(source_info['pdf_path']).strip()}"
+        )
 
     if source_info.get("url"):
-        combined_text += load_url(source_info["url"])
-        combined_text += "\n\n---NEW SOURCE: URL---\n\n"
+        sections.append(
+            "--- SOURCE: URL ---\n"
+            f"{load_url(source_info['url']).strip()}"
+        )
 
-    return combined_text.strip()
+    return "\n\n".join(section for section in sections if section.strip())
 
 
 def summarize_text(text: str, target_audience: str) -> str:
     """Summarize the combined source material with the OpenAI Responses API."""
     prompt = f"""
-Summarize the following source material clearly by combining all the provided content.
-The summary should be concise, engaging, and tailored to the specified target audience.
-The output will later be turned into a two-person podcast conversation.
+You are preparing source material for a two-person podcast conversation.
+
+You will receive multiple sources. Every source must be used.
+Do not ignore information just because one source is shorter, longer, more detailed,
+or more general than the others.
+
+Your task:
+1. Read all sources carefully.
+2. Identify the key points, examples, incidents, and claims from each source.
+3. Produce one integrated summary that reflects all sources fairly.
+4. Preserve concrete examples and unique details, even if they appear in only one source.
+5. If sources overlap, merge them cleanly.
+6. If sources differ, include the distinct perspectives or examples instead of dropping them.
+7. Before finishing, check that every source contributed at least one meaningful detail to the final summary.
+
+Output requirements:
+- Write a clear, concise summary.
+- Tailor the tone and complexity to the target audience.
+- Make the summary suitable for conversion into a two-person podcast conversation.
+- Do not mention source labels like "TEXT", "PDF", or "URL" in the final summary.
 
 Target audience: {target_audience}
 
