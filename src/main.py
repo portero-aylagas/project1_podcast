@@ -16,8 +16,17 @@ OUTPUT_DIR = Path("outputs")
 TRANSCRIPT_PATH = OUTPUT_DIR / "transcript.txt"
 
 
+def log_section(title):
+    print("\n" + "=" * 60)
+    print(title)
+    print("=" * 60)
+
+
 def reset_data():
+    log_section("🧹 STEP 1 — RESET ENVIRONMENT")
+
     if DATA_DIR.exists():
+        print(f"Deleting old data folder: {DATA_DIR}")
         shutil.rmtree(DATA_DIR)
 
     PDF_DIR.mkdir(parents=True, exist_ok=True)
@@ -25,8 +34,18 @@ def reset_data():
     URL_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    print("Data folders recreated.")
+
 
 def pipeline(pdf_file, url_input, text_input, target_audience, style):
+    log_section("📥 INPUT RECEIVED")
+
+    print(f"PDF provided: {pdf_file is not None}")
+    print(f"URL provided: {bool(url_input and url_input.strip())}")
+    print(f"Text provided: {bool(text_input and text_input.strip())}")
+    print(f"Target audience: {target_audience}")
+    print(f"Style: {style}")
+
     reset_data()
 
     sources = {
@@ -38,16 +57,20 @@ def pipeline(pdf_file, url_input, text_input, target_audience, style):
         "style": style,
     }
 
+    log_section("💾 STEP 2 — SAVE SOURCES")
+
     if pdf_file is not None:
         pdf_destination = PDF_DIR / Path(pdf_file.name).name
         shutil.copy(pdf_file.name, pdf_destination)
         sources["pdf_path"] = str(pdf_destination)
+        print(f"PDF saved → {pdf_destination}")
 
     if text_input and text_input.strip():
         text_destination = TEXT_DIR / "input.txt"
         with open(text_destination, "w", encoding="utf-8") as f:
             f.write(text_input.strip())
         sources["text_path"] = str(text_destination)
+        print(f"Text saved → {text_destination}")
 
     if url_input and url_input.strip():
         clean_url = url_input.strip()
@@ -58,29 +81,52 @@ def pipeline(pdf_file, url_input, text_input, target_audience, style):
 
         sources["url_path"] = str(url_destination)
         sources["url"] = clean_url
+        print(f"URL saved → {url_destination}")
+        print(f"URL value → {clean_url}")
 
     if not any([sources["pdf_path"], sources["text_path"], sources["url"]]):
         raise gr.Error("Provide at least one source.")
 
-    summary = dp.process_sources(sources)
+    print(f"Sources dictionary → {sources}")
 
+    log_section("🔍 STEP 3 — PROCESS SOURCES")
+    summary = dp.process_sources(sources)
+    print(f"Summary generated ({len(summary)} characters).")
+    print("\nSummary preview:")
+    print(summary[:800])
+
+    log_section("📝 STEP 4 — GENERATE PODCAST SCRIPT")
     script = llm.generate_podcast_script(
         summary_text=summary,
         target_audience=target_audience,
         style=style,
     )
 
+    segment_count = script.count("[Speaker1]:") + script.count("[Speaker2]:")
+    print(f"Podcast script generated ({len(script)} characters, {segment_count} segments).")
+    print("\nScript preview:")
+    print(script[:800])
+
+    log_section("💿 STEP 5 — SAVE TRANSCRIPT")
     with open(TRANSCRIPT_PATH, "w", encoding="utf-8") as f:
         f.write(script)
 
+    print(f"Transcript saved → {TRANSCRIPT_PATH}")
+
+    log_section("🎙️ STEP 6 — GENERATE AUDIO")
     audio_path = tts.generate_podcast_audio(script)
+    print(f"Audio generated → {audio_path}")
+
+    log_section("📦 DONE")
+    print(f"Audio file: {audio_path}")
+    print(f"Transcript file: {TRANSCRIPT_PATH}")
 
     return audio_path, script, str(TRANSCRIPT_PATH)
 
 
 def start_processing():
     return (
-        "Generating podcast...",
+        "⏳ Generating podcast...",
         gr.update(visible=False),
     )
 
@@ -130,7 +176,7 @@ with gr.Blocks(title="AI Podcast Studio") as demo:
             )
 
             submit_button = gr.Button(
-                "Generate Podcast",
+                "🎙️ Generate Podcast",
                 size="lg",
                 variant="primary",
             )
