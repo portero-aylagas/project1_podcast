@@ -1,79 +1,68 @@
-# =========================
-# Python
-# =========================
+# Podcast files
+outputs/
+data/
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 
-# Distribution / packaging
-.Python
-build/
-dist/
-eggs/
-.eggs/
-*.egg-info/
-*.egg
-
-# =========================
 # Virtual environments
-# =========================
-.conda/
-.env/
 .venv/
 venv/
-ENV/
 env/
+ENV/
+.conda/
 
-# =========================
-# Environment variables / secrets
-# =========================
+# Environment variables and secrets
 .env
 .env.*
-*.env
+!.env.example
 
-# =========================
-# Jupyter
-# =========================
+# Python packaging and build outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Test and coverage outputs
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type checker and tool caches
+.mypy_cache/
+.ruff_cache/
+.pyre/
 .ipynb_checkpoints/
 
-# =========================
-# VS Code
-# =========================
+# Jupyter
+.jupyter/
+
+# IDE/editor files
 .vscode/
+.idea/
+*.swp
+*.swo
 
-# =========================
-# Logs
-# =========================
-*.log
-logs/
-*.out
-*.err
-
-# =========================
 # OS files
-# =========================
 .DS_Store
 Thumbs.db
 
-# =========================
-# Testing / coverage
-# =========================
-.coverage
-.coverage.*
-.cache
-pytest_cache/
-htmlcov/
+# Logs
+*.log
 
-# =========================
-# Misc
-# =========================
-*.tmp
-*.bak
-*.swp
+# lab
+lab_source/
 
-# =========================
-# Podcast files
-# =========================
-outputs/
-data/
+# codex
+.codex/
+.agents/
+
+# Claude Code
+.claude/
+CLAUDE.local.md
